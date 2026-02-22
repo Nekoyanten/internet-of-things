@@ -1,0 +1,85 @@
+#define ROJO 13
+#define AMARILLO 12
+#define VERDE 11
+#define BOTON 2
+
+int modo = 0;
+bool ultimoBoton = HIGH;
+unsigned long tiempoAnterior = 0;
+int fase = 0;
+bool estadoBlink = false;
+
+void apagarTodo() {
+  digitalWrite(ROJO, LOW);
+  digitalWrite(AMARILLO, LOW);
+  digitalWrite(VERDE, LOW);
+}
+
+void setup() {
+  pinMode(ROJO, OUTPUT);
+  pinMode(AMARILLO, OUTPUT);
+  pinMode(VERDE, OUTPUT);
+  pinMode(BOTON, INPUT_PULLUP);
+}
+
+void loop() {
+  bool lectura = digitalRead(BOTON);
+
+  if (ultimoBoton == HIGH && lectura == LOW) {
+    modo++;
+    if (modo > 4) modo = 0;
+    tiempoAnterior = millis();
+    fase = 0;
+    delay(200); // Anti-rebote
+  }
+  ultimoBoton = lectura;
+
+  unsigned long ahora = millis();
+
+  switch (modo) {
+    case 0: // Secuencia Semáforo
+      if (ahora - tiempoAnterior >= 1000) {
+        tiempoAnterior = ahora;
+        fase++;
+        if (fase > 3) fase = 0;
+      }
+      apagarTodo();
+      if (fase == 0) digitalWrite(ROJO, HIGH);
+      if (fase == 1) digitalWrite(AMARILLO, HIGH);
+      if (fase == 2) digitalWrite(VERDE, HIGH);
+      if (fase == 3) digitalWrite(AMARILLO, HIGH);
+      break;
+
+    case 1: // Verde Fijo
+      apagarTodo();
+      digitalWrite(VERDE, HIGH);
+      break;
+
+    case 2: // Parpadeo General
+      if (ahora - tiempoAnterior >= 500) {
+        tiempoAnterior = ahora;
+        estadoBlink = !estadoBlink;
+      }
+      if (estadoBlink) {
+        digitalWrite(ROJO, HIGH);
+        digitalWrite(AMARILLO, HIGH);
+        digitalWrite(VERDE, HIGH);
+      } else {
+        apagarTodo();
+      }
+      break;
+
+    case 3: // Amarillo Intermitente
+      if (ahora - tiempoAnterior >= 500) {
+        tiempoAnterior = ahora;
+        estadoBlink = !estadoBlink;
+      }
+      apagarTodo();
+      if (estadoBlink) digitalWrite(AMARILLO, HIGH);
+      break;
+
+    case 4: // Todo apagado
+      apagarTodo();
+      break;
+  }
+}
