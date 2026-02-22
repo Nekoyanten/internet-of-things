@@ -1,0 +1,33 @@
+
+int rojo = 13;
+int amarillo = 12;
+int verde = 8;
+
+void setup() {
+  pinMode(rojo, OUTPUT);
+  pinMode(amarillo, OUTPUT);
+  pinMode(verde, OUTPUT);
+}
+
+void loop() {
+  // 1. ROJO encendido
+  digitalWrite(rojo, HIGH);
+  delay(1000);
+  digitalWrite(rojo, LOW);
+  
+  // 2. AMARILLO encendido
+  digitalWrite(amarillo, HIGH);
+  delay(500); 
+  digitalWrite(amarillo, LOW);
+
+  // 3. VERDE encendido
+  digitalWrite(verde, HIGH);
+  delay(2000); 
+  digitalWrite(verde, LOW);
+
+  // 4. AMARILLO encendido
+  digitalWrite(amarillo, HIGH);
+  delay(500); 
+  digitalWrite(amarillo, LOW);
+  
+}
