@@ -1,0 +1,43 @@
+int bits[5] = {13, 12, 11, 10, 9}; 
+
+void setup() {
+  for (int i = 0; i < 5; i++) {
+    pinMode(bits[i], OUTPUT);
+  }
+  
+  Serial.begin(9600);
+  Serial.println("=== CONTADOR BINARIO DEL 0 AL 20 ===");
+  Serial.println("LEDs: [13][12][11][10][9] = [16][8][4][2][1]");
+  Serial.println("-----------------------------------");
+}
+
+void loop() {
+  // Contar del 0 al 20
+  for (int numero = 0; numero <= 20; numero++) {
+    
+    // Mostrar el número en binario
+    Serial.print("Número decimal: ");
+    Serial.print(numero);
+    Serial.print(" | Binario: ");
+    
+    // Encender/apagar LEDs según el número
+    for (int bit = 4; bit >= 0; bit--) {
+      int valorBit = bitRead(numero, bit);
+      Serial.print(valorBit); // Mostrar en monitor serial
+      
+      // Controlar LED (bit 4 es el primer LED, bit 0 el último)
+      if (valorBit == 1) {
+        digitalWrite(bits[4 - bit], HIGH); // Encender
+      } else {
+        digitalWrite(bits[4 - bit], LOW);  // Apagar
+      }
+    }
+    
+    Serial.println(); // Nueva línea
+    
+    delay(1500); // Espera 1.5 segundos para ver el patrón
+  }
+  
+  Serial.println("¡Ciclo completado! Empezando de nuevo...");
+  delay(3000);
+}
