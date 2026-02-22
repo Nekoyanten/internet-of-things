@@ -1,13 +1,27 @@
-#define ROJO 13
+// Definición de pines
+#define ROJO    13
 #define AMARILLO 12
-#define VERDE 11
-#define BOTON 2
+#define VERDE    11
+#define BOTON    2
 
-int modo = 0;
-bool ultimoBoton = HIGH;
+// Variables de estado
+int modo = 0;                
+
+// Variables para el botón (anti-rebote)
+bool estadoBoton = HIGH;    
+bool ultimoEstadoBoton = HIGH; 
+unsigned long tiempoUltimoCambio = 0;
+const unsigned long tiempoDebounce = 50;
+
+// Variables para tiempos (modo normal)
 unsigned long tiempoAnterior = 0;
-int fase = 0;
+int fase = 0;                
+const unsigned long duracionFase[] = {1000, 500, 1000}; 
+
+// Variables para modos intermitentes
+unsigned long tiempoAnteriorBlink = 0;
 bool estadoBlink = false;
+const unsigned long intervaloBlink = 200; 
 
 void apagarTodo() {
   digitalWrite(ROJO, LOW);
@@ -20,66 +34,103 @@ void setup() {
   pinMode(AMARILLO, OUTPUT);
   pinMode(VERDE, OUTPUT);
   pinMode(BOTON, INPUT_PULLUP);
+
+  Serial.begin(9600);
+  Serial.println("Sistema iniciado - Modo 0: Normal");
 }
 
 void loop() {
+  
   bool lectura = digitalRead(BOTON);
 
-  if (ultimoBoton == HIGH && lectura == LOW) {
-    modo++;
-    if (modo > 4) modo = 0;
-    tiempoAnterior = millis();
-    fase = 0;
-    delay(200); // Anti-rebote
+  if (lectura != ultimoEstadoBoton) {
+    tiempoUltimoCambio = millis();
   }
-  ultimoBoton = lectura;
 
+  if ((millis() - tiempoUltimoCambio) > tiempoDebounce) {
+    if (lectura != estadoBoton) {
+      estadoBoton = lectura;
+
+      if (estadoBoton == LOW) {
+        modo++;
+        if (modo > 4) modo = 0;  
+
+        Serial.print("Modo cambiado a: ");
+        Serial.println(modo);
+
+        digitalWrite(ROJO, HIGH);
+        delay(50);
+        digitalWrite(ROJO, LOW);
+
+        tiempoAnterior = millis();
+        fase = 0;
+        estadoBlink = false;
+        apagarTodo();
+      }
+    }
+  }
+  ultimoEstadoBoton = lectura;
   unsigned long ahora = millis();
 
   switch (modo) {
-    case 0: // Secuencia Semáforo
-      if (ahora - tiempoAnterior >= 1000) {
+    case 0: // ----------- MODO 0: NORMAL
+      if (ahora - tiempoAnterior >= duracionFase[fase]) {
         tiempoAnterior = ahora;
         fase++;
         if (fase > 3) fase = 0;
       }
+
       apagarTodo();
       if (fase == 0) digitalWrite(ROJO, HIGH);
-      if (fase == 1) digitalWrite(AMARILLO, HIGH);
-      if (fase == 2) digitalWrite(VERDE, HIGH);
-      if (fase == 3) digitalWrite(AMARILLO, HIGH);
+      else if (fase == 1) digitalWrite(AMARILLO, HIGH);
+      else if (fase == 2) digitalWrite(VERDE, HIGH);
+      else if (fase == 3) digitalWrite(AMARILLO, HIGH);
       break;
 
-    case 1: // Verde Fijo
+    // ---------- MODO 1: VERDE FIJO ----------
+    case 1:
       apagarTodo();
       digitalWrite(VERDE, HIGH);
       break;
 
-    case 2: // Parpadeo General
-      if (ahora - tiempoAnterior >= 500) {
-        tiempoAnterior = ahora;
+    // ---------- MODO 2: FLASHING (todos intermitentes) ----------
+    case 2:
+      if (ahora - tiempoAnteriorBlink >= intervaloBlink) {
+        tiempoAnteriorBlink = ahora;
         estadoBlink = !estadoBlink;
+
+        if (estadoBlink) {
+          digitalWrite(ROJO, HIGH);
+          digitalWrite(AMARILLO, HIGH);
+          digitalWrite(VERDE, HIGH);
+        } else {
+          apagarTodo();
+        }
       }
-      if (estadoBlink) {
-        digitalWrite(ROJO, HIGH);
-        digitalWrite(AMARILLO, HIGH);
-        digitalWrite(VERDE, HIGH);
-      } else {
+      break;
+
+    // ---------- MODO 3: AMARILLO INTERMITENTE ----------
+    case 3:
+      if (ahora - tiempoAnteriorBlink >= intervaloBlink) {
+        tiempoAnteriorBlink = ahora;
+        estadoBlink = !estadoBlink;
+
         apagarTodo();
+        if (estadoBlink) digitalWrite(AMARILLO, HIGH);
       }
       break;
 
-    case 3: // Amarillo Intermitente
-      if (ahora - tiempoAnterior >= 500) {
-        tiempoAnterior = ahora;
-        estadoBlink = !estadoBlink;
-      }
+    // ---------- MODO 4: TODOS APAGADOS ----------
+    case 4:
       apagarTodo();
-      if (estadoBlink) digitalWrite(AMARILLO, HIGH);
       break;
+  }
 
-    case 4: // Todo apagado
-      apagarTodo();
-      break;
+  // Mostrar el modo cada 5 segundos para depuración
+  static unsigned long tiempoAnteriorSerial = 0;
+  if (ahora - tiempoAnteriorSerial >= 5000) {
+    tiempoAnteriorSerial = ahora;
+    Serial.print("Modo actual: ");
+    Serial.println(modo);
   }
 }
